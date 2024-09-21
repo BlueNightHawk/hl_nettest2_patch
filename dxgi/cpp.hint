@@ -1,0 +1,2 @@
+#define DXGI_API __declspec(dllexport)
+#define DXGI_API __declspec(dllimport)
