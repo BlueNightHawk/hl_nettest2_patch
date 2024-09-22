@@ -1,8 +1,6 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
 
-using std::string;
-
 struct dxgi_dll {
 	HMODULE dll;
 	FARPROC OrignalApplyCompatResolutionQuirking;
@@ -100,6 +98,11 @@ int HOOKED_CheckCD()
 	return 1;
 }
 
+// Skip woncomm check
+void __fastcall sub_4769B0(void* This)
+{
+}
+
 void SetCompleteHook(BYTE head, DWORD offset, ...)
 {
 	DWORD OldProtect;
@@ -121,6 +124,7 @@ void SetCompleteHook(BYTE head, DWORD offset, ...)
 void HookCD()
 {
 	SetCompleteHook(0xE9, 0x004431A0, &HOOKED_CheckCD);
+	SetCompleteHook(0xE9, 0x004769B0, &sub_4769B0);
 }
 
 int InitHook()
@@ -161,7 +165,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	case DLL_PROCESS_ATTACH:
 	{
 		InitDllProxy();
-		InitHook();
+		if (InitHook() != 0)
+		{
+			MessageBox(0, L"Cannot hook hl.exe", L"Proxy", MB_ICONERROR);
+			return FALSE;
+		}
 
 		break;
 	}
