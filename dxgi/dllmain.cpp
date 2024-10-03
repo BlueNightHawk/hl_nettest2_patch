@@ -85,7 +85,6 @@ void InitDllProxy()
 
 typedef void (WINAPI* GETSYSTEMTIME)(LPSYSTEMTIME);
 GETSYSTEMTIME ORIG_GetSystemTime = NULL;
-
 void WINAPI HOOKED_GetSystemTime(LPSYSTEMTIME lpSystemTime)
 {
 	ORIG_GetSystemTime(lpSystemTime);
@@ -93,8 +92,86 @@ void WINAPI HOOKED_GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	lpSystemTime->wMonth = 10;
 }
 
-int HOOKED_CheckCD()
+// Enable all resolutions
+// unknown
+int* dword_4F11D0;
+int* dword_4F11DC;
+
+// Display Widths
+int* dword_4F11D4;
+// Display Heights
+int* dword_4F11D8;
+// Display Mode Buffer
+char* byte_4F11FC;
+// Display Mode Count
+int* dword_4F111C;
+
+std::vector<DEVMODE> g_DevModes;
+
+void InitDisplayResolutions()
 {
+	DEVMODE		devmode = {};
+	int 	iMode = 0;
+
+	bool bContinue = false;
+
+	while (EnumDisplaySettings(NULL, iMode, &devmode))
+	{
+		++iMode;
+		for (size_t i = 0; i < g_DevModes.size(); i++)
+		{
+			if (g_DevModes.at(i).dmPelsWidth == devmode.dmPelsWidth && g_DevModes.at(i).dmPelsHeight == devmode.dmPelsHeight)
+			{
+				bContinue = true;
+				break;
+			}
+		}
+		if (bContinue)
+		{
+			bContinue = false;
+			continue;
+		}
+		g_DevModes.push_back(devmode);
+	}
+}
+
+int sub_427410()
+{
+	int* pWidths = dword_4F11D4;
+	int* pHeights = dword_4F11D8;
+	int* pCount = dword_4F111C;
+
+	if ((*pCount) > 0)
+	{
+		memset(pWidths, 0, *pCount);
+		memset(pHeights, 0, *pCount);
+		(*pCount) = 0;
+	}
+
+	if (g_DevModes.size() == 0)
+		InitDisplayResolutions();
+
+	for (const auto &f : g_DevModes)
+	{
+		int idx = 75 * (*pCount);
+		int v6 = 60 * (*pCount);
+
+		pWidths[idx] = f.dmPelsWidth;
+		pHeights[idx] = f.dmPelsHeight;
+
+		dword_4F11D0[idx] = (*pCount);
+		dword_4F11DC[5 * v6 / 4u] = (*pCount);
+
+		++(*pCount);
+	}
+
+	return 1;
+}
+
+// CD Check
+int sub_4431A0()
+{
+	//((int(*)())0x004431A0)();
 	return 1;
 }
 
@@ -123,8 +200,17 @@ void SetCompleteHook(BYTE head, DWORD offset, ...)
 
 void HookCD()
 {
-	SetCompleteHook(0xE9, 0x004431A0, &HOOKED_CheckCD);
+	SetCompleteHook(0xE9, 0x004431A0, &sub_4431A0);
 	SetCompleteHook(0xE9, 0x004769B0, &sub_4769B0);
+	SetCompleteHook(0xE9, 0x00427410, &sub_427410);
+	
+	dword_4F11D4 = (int*)0x004F11D4;
+	dword_4F11D8 = (int*)0x004F11D8;
+	dword_4F111C = (int*)0x004F111C;
+	byte_4F11FC = (char*)(0x004F11FC);
+
+	dword_4F11D0 = (int*)(0x004F11D0);
+	dword_4F11DC = (int*)(0x004F11DC);
 }
 
 int InitHook()

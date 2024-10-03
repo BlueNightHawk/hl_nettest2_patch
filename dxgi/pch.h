@@ -11,8 +11,10 @@
 #include <string>
 #include <stdio.h>
 
+#include <ddraw.h>
 #include "dxgi.h"
 #include "MinHook.h"
 
+#include <vector>
 
 #endif //PCH_H
