@@ -82,5 +82,8 @@ offset_s GetOffsetsAuto()
 	s.WidthPtr = ini.ReadULong(version, "WidthPtr", 0);
 	s.HeightPtr = ini.ReadULong(version, "HeightPtr", 0);
 	s.CountPtr = ini.ReadULong(version, "CountPtr", 0);
+
+	s.Bomb_Year = ini.ReadULong(version, "TimeBomb_Year", 0);
+	s.Bomb_Month = ini.ReadULong(version, "TimeBomb_Month", 0);
 	return s;
 }

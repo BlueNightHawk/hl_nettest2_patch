@@ -1,12 +1,14 @@
 #include "pch.h"
 
+offset_s g_Offsets;
+
 typedef void (WINAPI* GETSYSTEMTIME)(LPSYSTEMTIME);
 GETSYSTEMTIME ORIG_GetSystemTime = NULL;
 void WINAPI HOOKED_GetSystemTime(LPSYSTEMTIME lpSystemTime)
 {
 	ORIG_GetSystemTime(lpSystemTime);
-	lpSystemTime->wYear = 1998;
-	lpSystemTime->wMonth = 10;
+	lpSystemTime->wYear = g_Offsets.Bomb_Year;
+	lpSystemTime->wMonth = g_Offsets.Bomb_Month;
 }
 
 // Enable all resolutions
@@ -151,6 +153,8 @@ void HookExecutable()
 	{
 		SetCompleteHook(0xE9, ofs.ChangeDisplayModeByIndex, &ChangeDisplayModeByIndex);
 	}
+
+	g_Offsets = ofs;
 }
 
 int InitHook()

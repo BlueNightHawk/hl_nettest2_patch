@@ -10,6 +10,9 @@ struct offset_s {
 	unsigned long WidthPtr = 0;
 	unsigned long HeightPtr = 0;
 	unsigned long CountPtr = 0;
+
+	unsigned long Bomb_Month;
+	unsigned long Bomb_Year;
 };
 
 offset_s GetOffsets(const char* version);
