@@ -2,10 +2,10 @@
 A proxy of "dxgi.dll" that contains several patches for Half-Life WON versions. 
 
 # Features
-NoCD Patch
-Widescreen Patch
-Improved fullscreen mode
-Removed startup delay(FOR NETTEST BUILDS)
+NoCD Patch\
+Widescreen Patch\
+Improved fullscreen mode\
+Removed startup delay(FOR NETTEST BUILDS)\
 Removed timebomb(FOR NETTEST BUILDS)
 
 # dxgi.ini
