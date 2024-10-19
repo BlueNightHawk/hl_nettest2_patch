@@ -7,14 +7,25 @@
 #ifndef PCH_H
 #define PCH_H
 
+struct IUnknown;
+
 #include "framework.h"
 #include <string>
 #include <stdio.h>
 
 #include <ddraw.h>
-#include "dxgi.h"
+#include "proxy_dxgi.h"
+#include <dxgi.h>
 #include "MinHook.h"
 
 #include <vector>
+#include <cstdlib>
+#include <string>
+
+#include "ini.h"
+#include "ofs.h"
+
+int InitHook();
+int FreeHook();
 
 #endif //PCH_H
