@@ -1,6 +1,9 @@
 ## Half-Life WON Multi-Patch
 A proxy of "dxgi.dll" that contains several patches for Half-Life WON versions. 
 
+# How to install
+Just drag and drop "dxgi.dll" and "dxgi.ini" in the same folder as hl.exe.
+
 # Features
 NoCD Patch\
 Widescreen Patch\
