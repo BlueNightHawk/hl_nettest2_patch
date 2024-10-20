@@ -4,12 +4,22 @@ CIniReader::CIniReader(const char* szFileName)
 {
 	memset(m_szFileName, 0x00, 255);
 	memcpy(m_szFileName, szFileName, strlen(szFileName));
+
+	FILE* f = fopen(m_szFileName, "r");
+	if (!f)
+	{
+		MessageBox(0, L"Cannot open dxgi.ini", L"Proxy", MB_ICONERROR);
+		ExitProcess(0);
+	}
+	fclose(f);
 }
+
 int CIniReader::ReadInteger(const char* szSection, const char* szKey, int iDefaultValue)
 {
 	int iResult = GetPrivateProfileIntA(szSection, szKey, iDefaultValue, m_szFileName);
 	return iResult;
 }
+
 float CIniReader::ReadFloat(const char* szSection, const char* szKey, float fltDefaultValue)
 {
 	char szResult[255];
@@ -17,9 +27,10 @@ float CIniReader::ReadFloat(const char* szSection, const char* szKey, float fltD
 	float fltResult;
 	sprintf(szDefault, "%f", fltDefaultValue);
 	GetPrivateProfileStringA(szSection, szKey, szDefault, szResult, 255, m_szFileName);
-	fltResult = atof(szResult);
+	fltResult = (float)atof(szResult);
 	return fltResult;
 }
+
 bool CIniReader::ReadBoolean(const char* szSection, const char* szKey, bool bolDefaultValue)
 {
 	char szResult[255];
@@ -31,6 +42,7 @@ bool CIniReader::ReadBoolean(const char* szSection, const char* szKey, bool bolD
 		strcmp(szResult, "true") == 0) ? true : false;
 	return bolResult;
 }
+
 char* CIniReader::ReadString(const char* szSection, const char* szKey, const char* szDefaultValue)
 {
 	char* szResult = new char[255];

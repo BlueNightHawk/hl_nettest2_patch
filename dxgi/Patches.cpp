@@ -1,28 +1,23 @@
 #include "pch.h"
 
-offset_s g_Offsets;
+static offset_s g_Offsets;
 
-typedef void (WINAPI* GETSYSTEMTIME)(LPSYSTEMTIME);
-GETSYSTEMTIME ORIG_GetSystemTime = NULL;
-void WINAPI HOOKED_GetSystemTime(LPSYSTEMTIME lpSystemTime)
-{
-	ORIG_GetSystemTime(lpSystemTime);
-	lpSystemTime->wYear = g_Offsets.Bomb_Year;
-	lpSystemTime->wMonth = g_Offsets.Bomb_Month;
-}
+static GETSYSTEMTIME ORIG_GetSystemTime = NULL;
 
 // Enable all resolutions
+struct
+{
+	// Display Width
+	int* pWidth;
+	// Display Height
+	int* pHeight;
+	// Display Mode Count
+	int* pCount;
+} displaymode;
 
-// Display Widths
-int* pWidths;
-// Display Heights
-int* pHeights;
-// Display Mode Count
-int* pCount;
+static std::vector<DEVMODE> g_DevModes;
 
-std::vector<DEVMODE> g_DevModes;
-
-void InitDisplayResolutions()
+static void InitDisplayResolutions()
 {
 	DEVMODE		devmode = {};
 	int 	iMode = 0;
@@ -49,13 +44,14 @@ void InitDisplayResolutions()
 	}
 }
 
-int HOOKED_RESOLUTIONS()
+// Fills the list of game resolutions
+static int HOOKED_InitResolutionList()
 {
-	if ((*pCount) > 0)
+	if ((*displaymode.pCount) > 0)
 	{
-		memset(pWidths, 0, *pCount);
-		memset(pHeights, 0, *pCount);
-		(*pCount) = 0;
+		memset(displaymode.pWidth, 0, *displaymode.pCount);
+		memset(displaymode.pHeight, 0, *displaymode.pCount);
+		(*displaymode.pCount) = 0;
 	}
 
 	if (g_DevModes.size() == 0)
@@ -63,51 +59,47 @@ int HOOKED_RESOLUTIONS()
 
 	for (const auto& f : g_DevModes)
 	{
-		int idx = 75 * (*pCount);
-		int v6 = 60 * (*pCount);
+		int idx = 75 * (*displaymode.pCount);
+		int v6 = 60 * (*displaymode.pCount);
 
-		pWidths[idx] = f.dmPelsWidth;
-		pHeights[idx] = f.dmPelsHeight;
+		displaymode.pWidth[idx] = f.dmPelsWidth;
+		displaymode.pHeight[idx] = f.dmPelsHeight;
 
-		++(*pCount);
+		++(*displaymode.pCount);
 	}
 
 	return 1;
 }
 
 // CD Check
-int HOOKED_CDCHECK()
+static int HOOKED_CDCHECK()
 {
 	return 1;
 }
 
 // Skip woncomm check
-void __fastcall HOOKED_WONCOMM(void* This)
+static void __fastcall HOOKED_WONCOMM(void* This)
 {
 }
 
-BOOL ChangeDisplayMode(DWORD width, DWORD height, DWORD bpp)
+// Called when switching to game from main menu
+static BOOL HOOKED_ChangeDisplayModeByIndex(int idx)
 {
-	DEVMODEA DevMode; 
-
-	memset(&DevMode, 0, sizeof(DevMode));
-	DevMode.dmSize = sizeof(DevMode);
-	DevMode.dmPelsWidth = width;
-	DevMode.dmPelsHeight = height;
-	DevMode.dmBitsPerPel = bpp;
-	DevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFLAGS | DM_DISPLAYFREQUENCY | DM_POSITION;
-	return ChangeDisplaySettingsA(&DevMode, CDS_FULLSCREEN) == 0;
-}
-
-BOOL ChangeDisplayModeByIndex(int idx)
-{
+	HOOKED_InitResolutionList();
 	DEVMODE DevMode = g_DevModes.at(idx);
 
 	DevMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
 	return ChangeDisplaySettings(&DevMode, CDS_FULLSCREEN) == 0;
 }
 
-void SetCompleteHook(BYTE head, DWORD offset, ...)
+static void WINAPI HOOKED_GetSystemTime(LPSYSTEMTIME lpSystemTime)
+{
+	ORIG_GetSystemTime(lpSystemTime);
+	lpSystemTime->wYear = (WORD)g_Offsets.Bomb_Year;
+	lpSystemTime->wMonth = (WORD)g_Offsets.Bomb_Month;
+}
+
+static void SetCompleteHook(BYTE head, DWORD offset, ...)
 {
 	DWORD OldProtect;
 
@@ -125,36 +117,29 @@ void SetCompleteHook(BYTE head, DWORD offset, ...)
 	VirtualProtect((void*)offset, 5, OldProtect, &OldProtect);
 }
 
-void HookExecutable()
+static void HookExecutable()
 {
-	auto ofs = GetOffsetsAuto();
+	g_Offsets = GetOffsets();
 
-	if (ofs.CdCheck > 0)
-		SetCompleteHook(0xE9, ofs.CdCheck, &HOOKED_CDCHECK);
+	if (g_Offsets.CdCheck > 0)
+		SetCompleteHook(0xE9, g_Offsets.CdCheck, &HOOKED_CDCHECK);
 	
-	if (ofs.WonComm > 0)
-		SetCompleteHook(0xE9, ofs.WonComm, &HOOKED_WONCOMM);
+	if (g_Offsets.WonComm > 0)
+		SetCompleteHook(0xE9, g_Offsets.WonComm, &HOOKED_WONCOMM);
 
-	if (ofs.Resolution > 0 && ofs.WidthPtr > 0 && ofs.HeightPtr && ofs.CountPtr > 0)
+	if (g_Offsets.Resolution > 0 && g_Offsets.WidthPtr > 0 && g_Offsets.HeightPtr && g_Offsets.CountPtr > 0)
 	{
-		SetCompleteHook(0xE9, ofs.Resolution, &HOOKED_RESOLUTIONS);
+		SetCompleteHook(0xE9, g_Offsets.Resolution, &HOOKED_InitResolutionList);
 
-		pWidths = (int*)ofs.WidthPtr;
-		pHeights = (int*)ofs.HeightPtr;
-		pCount = (int*)ofs.CountPtr;
+		displaymode.pWidth = (int*)g_Offsets.WidthPtr;
+		displaymode.pHeight = (int*)g_Offsets.HeightPtr;
+		displaymode.pCount = (int*)g_Offsets.CountPtr;
 	}
 
-	if (ofs.ChangeDisplayMode > 0)
+	if (g_Offsets.ChangeDisplayModeByIndex > 0)
 	{
-		SetCompleteHook(0xE9, ofs.ChangeDisplayMode, &ChangeDisplayMode);
+		SetCompleteHook(0xE9, g_Offsets.ChangeDisplayModeByIndex, &HOOKED_ChangeDisplayModeByIndex);
 	}
-
-	if (ofs.ChangeDisplayModeByIndex > 0)
-	{
-		SetCompleteHook(0xE9, ofs.ChangeDisplayModeByIndex, &ChangeDisplayModeByIndex);
-	}
-
-	g_Offsets = ofs;
 }
 
 int InitHook()

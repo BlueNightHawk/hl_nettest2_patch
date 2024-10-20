@@ -4,7 +4,6 @@ struct offset_s {
 	unsigned long CdCheck = 0;
 	unsigned long WonComm = 0;
 	unsigned long Resolution = 0;
-	unsigned long ChangeDisplayMode = 0;
 	unsigned long ChangeDisplayModeByIndex = 0;
 
 	unsigned long WidthPtr = 0;
@@ -15,5 +14,4 @@ struct offset_s {
 	unsigned long Bomb_Year;
 };
 
-offset_s GetOffsets(const char* version);
-offset_s GetOffsetsAuto();
+offset_s GetOffsets();

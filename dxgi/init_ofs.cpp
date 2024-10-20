@@ -1,22 +1,6 @@
 #include "pch.h"
 
-offset_s GetOffsets(const char* version)
-{
-	static offset_s s;
-	s = {};
-	CIniReader ini(".\\dxgi.ini");
-
-	s.CdCheck = ini.ReadULong(version, "CdCheck", 0);
-	s.WonComm = ini.ReadULong(version, "WonCommCheck", 0);
-	s.Resolution = ini.ReadULong(version, "ResolutionList", 0);
-
-	s.WidthPtr = ini.ReadULong(version, "WidthPtr", 0);
-	s.HeightPtr = ini.ReadULong(version, "HeightPtr", 0);
-	s.CountPtr = ini.ReadULong(version, "CountPtr", 0);
-	return s;
-}
-
-const char* GetFileVersionOfApplication(LPCSTR lpszFilePath)
+static const char* GetFileVersionOfApplication(LPCSTR lpszFilePath)
 {
 	static char ver[30];
 	//give your application full path
@@ -37,10 +21,6 @@ const char* GetFileVersionOfApplication(LPCSTR lpszFilePath)
 
 	delete[] lpVersionInfo;
 
-	printf("Higher: %x\n", dwFileVersionMS);
-
-	printf("Lower: %x\n", dwFileVersionLS);
-
 	DWORD dwLeftMost = HIWORD(dwFileVersionMS);
 	DWORD dwSecondLeft = LOWORD(dwFileVersionMS);
 	DWORD dwSecondRight = HIWORD(dwFileVersionLS);
@@ -52,7 +32,29 @@ const char* GetFileVersionOfApplication(LPCSTR lpszFilePath)
 	return ver;
 }
 
-offset_s GetOffsetsAuto()
+static const char* ResolveNetTestVersion()
+{
+	static char line[1024];
+
+	FILE* f = fopen(".\\sierra.inf", "r");
+
+	//Checks if file is empty
+	if (f == NULL) {
+		return "1.0.1.0";
+	}
+
+	while (fgets(line, 1024, f)) {
+		if (strstr(line, "PatchVersion"))
+		{
+			fclose(f);
+			return "1.0.1.0_1";
+		}
+	}
+	fclose(f);
+	return "1.0.1.0";
+}
+
+offset_s GetOffsets()
 {
 	static offset_s s;
 	s = {};
@@ -71,12 +73,15 @@ offset_s GetOffsetsAuto()
 		sprintf(exepath, ".\\%s", executable);
 
 		version = GetFileVersionOfApplication(exepath);
+		if (!strcmp(version, "1.0.1.0"))
+		{
+			version = ResolveNetTestVersion();
+		}
 	}
 
 	s.CdCheck = ini.ReadULong(version, "CdCheck", 0);
 	s.WonComm = ini.ReadULong(version, "WonCommCheck", 0);
 	s.Resolution = ini.ReadULong(version, "ResolutionList", 0);
-	s.ChangeDisplayMode = ini.ReadULong(version, "ChangeDisplayMode", 0);
 	s.ChangeDisplayModeByIndex = ini.ReadULong(version, "CDMByIndex", 0);
 
 	s.WidthPtr = ini.ReadULong(version, "WidthPtr", 0);
